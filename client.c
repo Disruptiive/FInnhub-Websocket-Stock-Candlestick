@@ -352,83 +352,84 @@ int main(void)
     t = p;
 
     while(1){
-    ((data_t*)t)->sent = false;
-    struct sigaction act;
-    act.sa_handler = INT_HANDLER;
-    act.sa_flags = 0;
-    sigemptyset(&act.sa_mask);
-    sigaction( SIGINT, &act, 0);
+        ((data_t*)t)->sent = false; //send stock message every time socket connects
+        
+        struct sigaction act;
+        act.sa_handler = INT_HANDLER;
+        act.sa_flags = 0;
+        sigemptyset(&act.sa_mask);
+        sigaction( SIGINT, &act, 0);
 
-    struct lws_context *context = NULL;
-    struct lws_context_creation_info info;
-    struct lws *wsi = NULL;
-    struct lws_protocols protocol;
+        struct lws_context *context = NULL;
+        struct lws_context_creation_info info;
+        struct lws *wsi = NULL;
+        struct lws_protocols protocol;
 
-    memset(&info, 0, sizeof info);
+        memset(&info, 0, sizeof info);
 
-    info.port = CONTEXT_PORT_NO_LISTEN;
-    info.protocols = protocols;
-    info.gid = -1;
-    info.uid = -1;
-    info.options = LWS_SERVER_OPTION_DO_SSL_GLOBAL_INIT;
+        info.port = CONTEXT_PORT_NO_LISTEN;
+        info.protocols = protocols;
+        info.gid = -1;
+        info.uid = -1;
+        info.options = LWS_SERVER_OPTION_DO_SSL_GLOBAL_INIT;
 
-    info.user = t;
+        info.user = t;
 
-    
-    char inputURL[300] = 
-	"wss://ws.finnhub.io/?token=cb69tmqad3i70tu6288g";
-    const char *urlProtocol, *urlTempPath;
-	char urlPath[300];
-    context = lws_create_context(&info);
-    printf(KRED"[Main] context created.\n"RESET);
+        
+        char inputURL[300] = 
+        "wss://ws.finnhub.io/?token=cb69tmqad3i70tu6288g";
+        const char *urlProtocol, *urlTempPath;
+        char urlPath[300];
+        context = lws_create_context(&info);
+        printf(KRED"[Main] context created.\n"RESET);
 
-    if (context == NULL) {
-        printf(KRED"[Main] context is NULL.\n"RESET);
-        return -1;
-    }
-    struct lws_client_connect_info clientConnectionInfo;
-    memset(&clientConnectionInfo, 0, sizeof(clientConnectionInfo));
-    clientConnectionInfo.context = context;
-    if (lws_parse_uri(inputURL, &urlProtocol, &clientConnectionInfo.address,
-	    &clientConnectionInfo.port, &urlTempPath))
-    {
-	    printf("Couldn't parse URL\n");
-    }
+        if (context == NULL) {
+            printf(KRED"[Main] context is NULL.\n"RESET);
+            return -1;
+        }
+        struct lws_client_connect_info clientConnectionInfo;
+        memset(&clientConnectionInfo, 0, sizeof(clientConnectionInfo));
+        clientConnectionInfo.context = context;
+        if (lws_parse_uri(inputURL, &urlProtocol, &clientConnectionInfo.address,
+            &clientConnectionInfo.port, &urlTempPath))
+        {
+            printf("Couldn't parse URL\n");
+        }
 
-    urlPath[0] = '/';
-    strncpy(urlPath + 1, urlTempPath, sizeof(urlPath) - 2);
-    urlPath[sizeof(urlPath)-1] = '\0';
-    clientConnectionInfo.port = 443;
-    clientConnectionInfo.path = urlPath;
-    clientConnectionInfo.ssl_connection = LCCSCF_USE_SSL | LCCSCF_ALLOW_SELFSIGNED | LCCSCF_SKIP_SERVER_CERT_HOSTNAME_CHECK;
-    clientConnectionInfo.host = clientConnectionInfo.address;
-    clientConnectionInfo.origin = clientConnectionInfo.address;
-    clientConnectionInfo.ietf_version_or_minus_one = -1;
-    clientConnectionInfo.protocol = "";
-    clientConnectionInfo.local_protocol_name = protocols[0].name;
-    printf("Testing %s\n\n", clientConnectionInfo.address);
-    printf("Connecticting to %s://%s:%d%s \n\n", urlProtocol, 
-    clientConnectionInfo.address, clientConnectionInfo.port, urlPath);
+        urlPath[0] = '/';
+        strncpy(urlPath + 1, urlTempPath, sizeof(urlPath) - 2);
+        urlPath[sizeof(urlPath)-1] = '\0';
+        clientConnectionInfo.port = 443;
+        clientConnectionInfo.path = urlPath;
+        clientConnectionInfo.ssl_connection = LCCSCF_USE_SSL | LCCSCF_ALLOW_SELFSIGNED | LCCSCF_SKIP_SERVER_CERT_HOSTNAME_CHECK;
+        clientConnectionInfo.host = clientConnectionInfo.address;
+        clientConnectionInfo.origin = clientConnectionInfo.address;
+        clientConnectionInfo.ietf_version_or_minus_one = -1;
+        clientConnectionInfo.protocol = "";
+        clientConnectionInfo.local_protocol_name = protocols[0].name;
+        printf("Testing %s\n\n", clientConnectionInfo.address);
+        printf("Connecticting to %s://%s:%d%s \n\n", urlProtocol, 
+        clientConnectionInfo.address, clientConnectionInfo.port, urlPath);
 
-    
-    destroy_flag = 0;
-    wsi = lws_client_connect_via_info(&clientConnectionInfo);
+        
+        destroy_flag = 0;
+        wsi = lws_client_connect_via_info(&clientConnectionInfo);
 
-    if (wsi == NULL) {
-        printf(KRED"[Main] wsi create error.\n"RESET);
-        return -1;
-    }
+        if (wsi == NULL) {
+            printf(KRED"[Main] wsi create error.\n"RESET);
+            return -1;
+        }
 
-    printf(KGRN"[Main] wsi create success.\n"RESET);
+        printf(KGRN"[Main] wsi create success.\n"RESET);
 
-    while(!destroy_flag)
-    {
-        lws_service(context, 0);
-    }    
-    usleep(10000000);
+        while(!destroy_flag)
+        {
+            lws_service(context, 0);
+        }    
+        usleep(10000000);
 
-    
-    
-    lws_context_destroy(context);
+        
+        
+        lws_context_destroy(context);
     }
 }
