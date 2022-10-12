@@ -97,9 +97,9 @@ void writeTrade(char* symbol,double p, double v,unsigned long long trade_time, i
     
     FILE *f;
     f = fopen(name,"a");
-    size_t needed = snprintf(NULL, 0, "%lf %lf %llu %d\n",p,v,trade_time,time_diff) + 1;
+    size_t needed = snprintf(NULL, 0, "%lf,%lf,%llu,%d\n",p,v,trade_time,time_diff)+1;
     char  *buffer = malloc(needed);
-    sprintf(buffer,"%lf %lf %llu %d\n",p,v,trade_time,time_diff);
+    sprintf(buffer,"%lf,%lf,%llu,%d\n",p,v,trade_time,time_diff);
     fwrite(buffer,needed,1,f);
     free(buffer);
     fclose(f);
@@ -132,7 +132,6 @@ void updateCandlestick(data_t* data,int idx, double p, unsigned long long t, dou
 
     unsigned long long time_now = returnTime();
     int time_diff = time_now - t;
-    
     writeTrade(data->candlesticks[idx].symbol,p,v,t,time_diff);
     //printf("Candlestick: %s Open: %lf Close: %lf Low: %lf High: %lf Total Price: %lf Total Volume: %lf Timediff: %llu Empty: %d Count: %d\n", data->candlesticks[idx].symbol, data->candlesticks[idx].open_price,data->candlesticks[idx].close_price,data->candlesticks[idx].low_price,data->candlesticks[idx].high_price,data->candlesticks[idx].total_price,data->candlesticks[idx].total_volume,time_diff,data->candlesticks[idx].empty,data->candlesticks[idx].count);
 }
@@ -143,9 +142,9 @@ void writeCandlestick(candle_t candle){
     
     FILE *f;
     f = fopen(name,"a");
-    size_t needed = snprintf(NULL, 0, "%lf %lf %lf %lf %lf \n",candle.open_price, candle.close_price, candle.low_price, candle.high_price, candle.total_volume) + 1;
+    size_t needed = snprintf(NULL, 0, "%lf,%lf,%lf,%lf,%lf\n",candle.open_price, candle.close_price, candle.low_price, candle.high_price, candle.total_volume) + 1;
     char  *buffer = malloc(needed);
-    sprintf(buffer,"%lf %lf %lf %lf %lf \n",candle.open_price, candle.close_price, candle.low_price, candle.high_price, candle.total_volume);
+    sprintf(buffer,"%lf,%lf,%lf,%lf,%lf\n",candle.open_price, candle.close_price, candle.low_price, candle.high_price, candle.total_volume);
     fwrite(buffer,needed,1,f);
     free(buffer);
     fclose(f);
@@ -157,9 +156,9 @@ void writeData(char *symbol, double avg_price, double total_volume){
     
     FILE *f;
     f = fopen(name,"a");
-    size_t needed = snprintf(NULL, 0, "%lf %lf\n",avg_price,total_volume) + 1;
+    size_t needed = snprintf(NULL, 0, "%lf,%lf\n",avg_price,total_volume) + 1;
     char  *buffer = malloc(needed);
-    sprintf(buffer,"%lf %lf\n",avg_price,total_volume);
+    sprintf(buffer,"%lf,%lf\n",avg_price,total_volume);
     fwrite(buffer,needed,1,f);
     free(buffer);
     fclose(f);
@@ -277,13 +276,11 @@ static int ws_service_callback(
         
         case LWS_CALLBACK_CLOSED:
             printf(KYEL"[Main Service] LWS_CALLBACK_CLOSED\n"RESET);
-            exit(0);
             destroy_flag = 1;
             connection_flag = 0;
             break;
         case LWS_CALLBACK_CLIENT_CLOSED:
             printf(KYEL"\nSESSION ENDED\n"RESET);
-            exit(0);
             destroy_flag = 1;
             connection_flag = 0;
             break;
@@ -342,26 +339,31 @@ static struct lws_protocols protocols[] =
 
 int main(void)
 {   
-    //* register the signal SIGINT handler */
+    
+    //lws_set_log_level(1151, NULL);
+
+    
+
+    char symb_arr[][100] = {"BA\0", "AMZN\0", "TSLA\0", "BINANCE:BTCUSDT\0","AAPL\0","NVDA\0"};
+    int n_stocks = sizeof(symb_arr)/sizeof(symb_arr[0]);
+    int minutes = 15;
+    data_t* p = initialiseData(symb_arr,n_stocks,minutes);
+    void *t;
+    t = p;
+
+    while(1){
+    ((data_t*)t)->sent = false;
     struct sigaction act;
     act.sa_handler = INT_HANDLER;
     act.sa_flags = 0;
     sigemptyset(&act.sa_mask);
     sigaction( SIGINT, &act, 0);
 
-
     struct lws_context *context = NULL;
     struct lws_context_creation_info info;
     struct lws *wsi = NULL;
     struct lws_protocols protocol;
 
-    char symb_arr[][100] = {"BA\0", "AMZN\0", "IC MARKETS:1\0", "BINANCE:BTCUSDT\0","AAPL\0","NVDA\0"};
-    int n_stocks = sizeof(symb_arr)/sizeof(symb_arr[0]);
-    int minutes = 15;
-    data_t* p = initialiseData(symb_arr,n_stocks,minutes);
-    void *t;
-    t = p;
-    //lws_set_log_level(1151, NULL);
     memset(&info, 0, sizeof info);
 
     info.port = CONTEXT_PORT_NO_LISTEN;
@@ -409,6 +411,7 @@ int main(void)
     clientConnectionInfo.address, clientConnectionInfo.port, urlPath);
 
     
+    destroy_flag = 0;
     wsi = lws_client_connect_via_info(&clientConnectionInfo);
 
     if (wsi == NULL) {
@@ -421,9 +424,11 @@ int main(void)
     while(!destroy_flag)
     {
         lws_service(context, 0);
-    }
-
-    lws_context_destroy(context);
+    }    
+    usleep(10000000);
 
     
+    
+    lws_context_destroy(context);
+    }
 }
