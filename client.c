@@ -122,7 +122,7 @@ void updateCandlestick(data_t* data,int idx, double p, unsigned long long t, dou
         if (p>data->candlesticks[idx].high_price){
             data->candlesticks[idx].high_price = p;
         }
-        if (p<data->candlesticks[idx].high_price){
+        if (p<data->candlesticks[idx].low_price){
             data->candlesticks[idx].low_price = p;
         }
         data->candlesticks[idx].total_price += p;
